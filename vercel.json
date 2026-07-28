@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "name": "english-learning-companion",
+  "builds": [
+    { "src": "index.html", "use": "@vercel/static" }
+  ],
+  "routes": [
+    { "src": "/sw.js", "dest": "/sw.js", "headers": { "Content-Type": "application/javascript; charset=utf-8", "Cache-Control": "no-cache" } },
+    { "src": "/manifest.json", "dest": "/manifest.json", "headers": { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-cache" } },
+    { "src": "/qr-code.svg", "dest": "/qr-code.svg" },
+    { "src": "/(.*)", "dest": "/index.html" }
+  ]
+}
