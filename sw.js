@@ -1,5 +1,5 @@
 // 英语·语文·数学 伴学 — Service Worker for offline support
-const CACHE_NAME = 'eng-companion-v41';
+const CACHE_NAME = 'eng-companion-v42';
 const ASSETS = [
   './',
   './index.html',
