@@ -7623,11 +7623,25 @@ function getDailyPoemRecommendation() {
   }
   return shuffled.slice(0, 3);
 }
+// Fisher-Yates 每日洗牌（基于日期种子的可复现随机）
+function dailyShuffle(arr, seed) {
+  var daySeed = seed || 0;
+  function nextRand() { daySeed = (daySeed * 1103515245 + 12345) & 0x7fffffff; return daySeed; }
+  for (var i = arr.length - 1; i > 0; i--) {
+    var j = nextRand() % (i + 1);
+    var tmp = arr[i]; arr[i] = arr[j]; arr[j] = tmp;
+  }
+  return arr;
+}
+
+// 按年级返回数学思维挑战题库（每日选取 + 2道动态题）
 function getMathProblems() {
   var grade = getCurrentProfile().grade;
   var pool = grade === 'g4' ? G4_MATH_PROBLEMS : G7_MATH_PROBLEMS;
-  // 每日从题库中选取，并附加2道动态生成题
-  var seed = new Date().toDateString();
+  // 每日从题库中选取
+  var seed = 0;
+  var today = todayStr();
+  for (var i = 0; i < today.length; i++) seed = (seed * 31 + today.charCodeAt(i)) & 0x7fffffff;
   var shuffled = dailyShuffle(pool.slice(), seed);
   // 附加动态生成的题目
   var dynamic1 = genDynamicProblem(grade);
