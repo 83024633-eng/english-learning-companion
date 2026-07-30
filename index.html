@@ -10263,12 +10263,16 @@ function startKeyMathExplain(probId) {
     html += '<div style="padding:16px 0;color:var(--text-light);font-size:.85rem;line-height:1.8;">😕 当前浏览器不支持语音识别<br>请使用 Chrome 或 Edge 浏览器</div>';
     html += '<button class="practice-btn" style="margin-top:8px;width:100%;" onclick="showKeyMathAnswer(\'' + probId + '\')">查看解题思路</button>';
   } else {
-    html += '<div style="font-size:.8rem;color:var(--text-light);margin-bottom:8px;">请用语音讲解你的解题思路：先做什么、再做什么、每一步怎么算</div>';
+    html += '<div style="font-size:.8rem;color:var(--text-light);margin-bottom:8px;line-height:1.7;">请用语音讲解你的解题思路：先做什么、再做什么、每一步怎么算<br><span style="color:var(--orange);font-weight:600;">💡 操作：点击 🎤 开始，再点 🎤 结束</span></div>';
     html += '<button class="recite-mic-btn" id="keyMathMicBtn" onclick="toggleKeyMathMic()">🎤</button>';
     html += '<div class="recite-status" id="keyMathStatus">点击麦克风开始讲解</div>';
     html += '<div class="recite-interim" id="keyMathInterim"></div>';
     html += '<div id="keyMathResultArea"></div>';
-    html += '<button class="practice-btn" style="margin-top:12px;width:100%;background:var(--bg);color:var(--text-light);" onclick="closeKeyMathExplain()">关闭</button>';
+    html += '<div style="display:flex;gap:8px;margin-top:12px;">';
+    html += '<button class="practice-btn" style="flex:1;background:var(--bg);color:var(--text);border:1px solid var(--text-light);" onclick="showKeyMathTextInput(\'' + probId + '\')">⌨️ 打字输入思路</button>';
+    html += '<button class="practice-btn" style="flex:1;background:var(--green);color:#fff;" onclick="keyMathMarkDoneOnly(\'' + probId + '\')">✓ 标记完成</button>';
+    html += '</div>';
+    html += '<button class="practice-btn" style="margin-top:8px;width:100%;background:var(--bg);color:var(--text-light);" onclick="closeKeyMathExplain()">关闭</button>';
   }
   html += '</div>';
   overlay.innerHTML = html;
@@ -10319,12 +10323,41 @@ function toggleKeyMathMic() {
     }
   };
   keyMathReciteRecognition.onend = function() {
+    // 如果用户没主动停止，且自动重启次数 < 5，则自动重启识别（避免中途中断）
+    if (keyMathReciteListening && (window._keyMathAutoRestart || 0) < 5) {
+      window._keyMathAutoRestart = (window._keyMathAutoRestart || 0) + 1;
+      setTimeout(function() {
+        if (keyMathReciteListening && keyMathReciteRecognition) {
+          try {
+            keyMathReciteRecognition.start();
+            if (status) status.innerHTML = '<span style="color:var(--orange);">⚡ 自动继续聆听中...（' + window._keyMathAutoRestart + '/5）<br><span style="font-size:.75rem;color:var(--text-light);">讲完后再次点击 🎤 停止</span></span>';
+          } catch(err) {
+            keyMathReciteListening = false;
+            if (btn) { btn.classList.remove('listening'); btn.textContent = '🎤'; }
+            if (status) status.innerHTML = '<span style="color:var(--coral);">识别已停止，点击 🎤 继续或 ⌨️ 打字输入</span>';
+          }
+        }
+      }, 250);
+      return;
+    }
     keyMathReciteListening = false;
+    window._keyMathAutoRestart = 0;
     if (btn) { btn.classList.remove('listening'); btn.textContent = '🎤'; }
-    if (finalText.trim().length > 0) {
+    if (finalText.trim().length >= 4) {
+      // 自动评价 + 自动标记为已完成（孩子讲完无需再点按钮）
       checkKeyMathExplain(finalText, probId);
+      setTimeout(function() {
+        if (state.keyMath && state.keyMath[probId]) {
+          var sc = state.keyMath[probId].bestScore || 0;
+          if (!state.keyMath[probId].done) {
+            keyMathExplainDone(probId, sc);
+          }
+        }
+      }, 600);
+    } else if (finalText.trim().length > 0) {
+      if (status) status.innerHTML = '<span style="color:var(--coral);">识别内容太短，请再试一次或 ⌨️ 打字输入</span>';
     } else {
-      if (status) status.innerHTML = '<span style="color:var(--coral);">没有识别到内容，请再试一次</span>';
+      if (status) status.innerHTML = '<span style="color:var(--coral);">没有识别到内容，请再试一次或 ⌨️ 打字输入</span>';
     }
   };
   try { keyMathReciteRecognition.start(); } catch(err) { console.warn(err); }
@@ -10373,8 +10406,8 @@ function checkKeyMathExplain(transcript, probId) {
   html += '<div style="font-size:.82rem;color:var(--text);line-height:1.8;white-space:pre-line;">' + prob.solution + '</div>';
   html += '</div>';
   html += '<div style="margin-top:12px;display:flex;gap:8px;">';
+  html += '<button class="practice-btn" style="flex:1;background:var(--green);color:#fff;" onclick="closeKeyMathExplain()">✓ 完成讲解</button>';
   html += '<button class="practice-btn" style="flex:1;" onclick="retryKeyMathExplain()">🔄 再讲一次</button>';
-  html += '<button class="practice-btn" style="flex:1;background:var(--green);color:#fff;" onclick="keyMathExplainDone(\'' + probId + '\',' + score + ')">✓ 完成讲解</button>';
   html += '</div>';
   if (resultArea) resultArea.innerHTML = html;
   // 保存最佳成绩
@@ -10405,6 +10438,61 @@ function showKeyMathAnswer(probId) {
   html += '<div style="font-size:.82rem;color:var(--text);line-height:1.8;white-space:pre-line;">' + prob.solution + '</div>';
   html += '</div>';
   resultArea.innerHTML = html;
+}
+
+function keyMathMarkDoneOnly(probId) {
+  // 不需要语音识别，直接标记为完成
+  if (!state.keyMath) state.keyMath = {};
+  if (!state.keyMath[probId]) state.keyMath[probId] = {};
+  var wasDone = state.keyMath[probId].done;
+  if (!wasDone) {
+    state.keyMath[probId].done = true;
+    state.stats.dailyKeyMath = (state.stats.dailyKeyMath || 0) + 1;
+    state.stats.totalKeyMath = (state.stats.totalKeyMath || 0) + 1;
+    state.stats.points += 20;
+    addPointsAnim(20);
+    completeTask('keymath');
+    recordStudyActivity();
+    saveState();
+    checkAchievements();
+    renderKeyMath();
+    updateHome();
+  }
+  closeKeyMathExplain();
+  showToast('讲解已标记完成！+20积分 🎉', 'success');
+}
+
+function showKeyMathTextInput(probId) {
+  var resultArea = document.getElementById('keyMathResultArea');
+  if (!resultArea) return;
+  var html = '<div style="margin-top:12px;padding:14px;background:var(--primary-light);border-radius:12px;text-align:left;">';
+  html += '<div style="font-size:.85rem;color:var(--primary);font-weight:700;margin-bottom:8px;">⌨️ 文字输入你的思路</div>';
+  html += '<textarea id="keyMathTextInputArea" style="width:100%;min-height:80px;padding:10px;border:1px solid var(--bg);border-radius:8px;font-size:.85rem;line-height:1.6;resize:vertical;box-sizing:border-box;" placeholder="例如：先设未知数，列方程，求解..."></textarea>';
+  html += '<div style="display:flex;gap:8px;margin-top:10px;">';
+  html += '<button class="practice-btn" style="flex:1;background:var(--green);color:#fff;" onclick="submitKeyMathTextInput(\'' + probId + '\')">✓ 提交评价</button>';
+  html += '</div>';
+  html += '</div>';
+  resultArea.innerHTML = html;
+  setTimeout(function() {
+    var ta = document.getElementById('keyMathTextInputArea');
+    if (ta) ta.focus();
+  }, 200);
+}
+
+function submitKeyMathTextInput(probId) {
+  var ta = document.getElementById('keyMathTextInputArea');
+  if (!ta) return;
+  var text = ta.value.trim();
+  if (text.length < 4) { showToast('请至少输入几个字', ''); return; }
+  checkKeyMathExplain(text, probId);
+  setTimeout(function() {
+    if (state.keyMath && state.keyMath[probId]) {
+      var sc = state.keyMath[probId].bestScore || 0;
+      if (!state.keyMath[probId].done) {
+        keyMathExplainDone(probId, sc);
+      }
+    }
+  }, 600);
 }
 
 function keyMathExplainDone(probId, score) {
@@ -10931,7 +11019,7 @@ function showAddToHomeScreenGuide() {
 // ============ 云端同步系统 ============
 // 主同步服务：jsonblob.com（压缩后上传，匿名限制10KB）
 // 旧版兼容：restful-api.dev（已弃用，仅恢复旧同步码时兼容）
-var APP_VERSION = 'v40';
+var APP_VERSION = 'v41';
 var CLOUD_API = 'https://jsonblob.com/api/jsonBlob';
 var CLOUD_LEGACY_RESTFUL = 'https://api.restful-api.dev/objects';
 var cloudSyncId = null;
