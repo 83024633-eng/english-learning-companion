@@ -7624,8 +7624,8 @@ function getDailyPoemRecommendation() {
   return shuffled.slice(0, 3);
 }
 function getMathProblems() {
-  var grade = getCurrentGrade();
-  var pool = grade === 'G4' ? G4_MATH_PROBLEMS : G7_MATH_PROBLEMS;
+  var grade = getCurrentProfile().grade;
+  var pool = grade === 'g4' ? G4_MATH_PROBLEMS : G7_MATH_PROBLEMS;
   // 每日从题库中选取，并附加2道动态生成题
   var seed = new Date().toDateString();
   var shuffled = dailyShuffle(pool.slice(), seed);
@@ -7707,7 +7707,7 @@ function genChickenRabbit(grade) {
   var h = 10 + Math.floor(Math.random() * 30);
   var c = Math.floor(Math.random() * (h - 5)) + 5;
   var legs = 2 * c + 4 * (h - c);
-  if (grade === 'G4') {
+  if (grade === 'g4') {
     return {
       id: 'dyn-chicken-' + Date.now(),
       category: '鸡兔同笼',
@@ -7845,10 +7845,10 @@ function genSurplusDeficit(grade) {
     id: 'dyn-surplus-' + Date.now(),
     category: '盈亏问题',
     difficulty: '⭐⭐',
-    question: '小朋友分' + (grade === 'G4' ? '糖果' : '物品') + '。每人分' + n + '个，多' + surplus + '个；每人分' + (n + 2) + '个，少' + deficit + '个。有多少个小朋友？多少个' + (grade === 'G4' ? '糖果' : '物品') + '？',
+    question: '小朋友分' + (grade === 'g4' ? '糖果' : '物品') + '。每人分' + n + '个，多' + surplus + '个；每人分' + (n + 2) + '个，少' + deficit + '个。有多少个小朋友？多少个' + (grade === 'g4' ? '糖果' : '物品') + '？',
     hint: '人数=(盈+亏)÷分配差。',
-    answer: people + '个小朋友，' + items + '个' + (grade === 'G4' ? '糖果' : '物品'),
-    explanation: '人数=(' + surplus + '+' + deficit + ')÷(' + (n + 2) + '-' + n + ')=' + people + '人。' + (grade === 'G4' ? '糖果' : '物品') + '=' + people + '×' + n + '+' + surplus + '=' + items + '个。'
+    answer: people + '个小朋友，' + items + '个' + (grade === 'g4' ? '糖果' : '物品'),
+    explanation: '人数=(' + surplus + '+' + deficit + ')÷(' + (n + 2) + '-' + n + ')=' + people + '人。' + (grade === 'g4' ? '糖果' : '物品') + '=' + people + '×' + n + '+' + surplus + '=' + items + '个。'
   };
 }
 
