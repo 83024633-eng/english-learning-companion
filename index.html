@@ -10270,7 +10270,7 @@ function startKeyMathExplain(probId) {
     html += '<div id="keyMathResultArea"></div>';
     html += '<div style="display:flex;gap:8px;margin-top:12px;">';
     html += '<button class="practice-btn" style="flex:1;background:var(--bg);color:var(--text);border:1px solid var(--text-light);" onclick="showKeyMathTextInput(\'' + probId + '\')">⌨️ 打字输入思路</button>';
-    html += '<button class="practice-btn" style="flex:1;background:var(--green);color:#fff;" onclick="keyMathMarkDoneOnly(\'' + probId + '\')">✓ 标记完成</button>';
+    html += '<button class="practice-btn" id="keyMathMarkDoneBtn" style="flex:1;background:var(--bg);color:var(--text-light);border:1px solid var(--bg);cursor:not-allowed;" disabled onclick="keyMathMarkDoneOnly(\'' + probId + '\')">🔒 先讲解再完成</button>';
     html += '</div>';
     html += '<button class="practice-btn" style="margin-top:8px;width:100%;background:var(--bg);color:var(--text-light);" onclick="closeKeyMathExplain()">关闭</button>';
   }
@@ -10410,6 +10410,16 @@ function checkKeyMathExplain(transcript, probId) {
   html += '<button class="practice-btn" style="flex:1;" onclick="retryKeyMathExplain()">🔄 再讲一次</button>';
   html += '</div>';
   if (resultArea) resultArea.innerHTML = html;
+  // 讲解评价完成，启用"标记完成"按钮
+  var markBtn = document.getElementById('keyMathMarkDoneBtn');
+  if (markBtn) {
+    markBtn.disabled = false;
+    markBtn.style.cursor = 'pointer';
+    markBtn.style.background = 'var(--green)';
+    markBtn.style.color = '#fff';
+    markBtn.style.border = 'none';
+    markBtn.textContent = '✓ 标记完成';
+  }
   // 保存最佳成绩
   if (!state.keyMath) state.keyMath = {};
   if (!state.keyMath[probId]) state.keyMath[probId] = {};
@@ -10426,6 +10436,16 @@ function retryKeyMathExplain() {
   if (resultArea) resultArea.innerHTML = '';
   if (status) status.textContent = '点击麦克风开始讲解';
   if (interimEl) interimEl.textContent = '';
+  // 重置"标记完成"按钮为禁用状态
+  var markBtn = document.getElementById('keyMathMarkDoneBtn');
+  if (markBtn) {
+    markBtn.disabled = true;
+    markBtn.style.cursor = 'not-allowed';
+    markBtn.style.background = 'var(--bg)';
+    markBtn.style.color = 'var(--text-light)';
+    markBtn.style.border = '1px solid var(--bg)';
+    markBtn.textContent = '🔒 先讲解再完成';
+  }
 }
 
 function showKeyMathAnswer(probId) {
